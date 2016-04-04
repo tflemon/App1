@@ -5,32 +5,26 @@ status
 create_time
 
 
-display todo
+##display todo
 select content from todo where user_id = $user_id;
 
-update status
-update todo set status = done where id = $id;
+##update status
+update todo set status = 'done' where id = $id;
 
-update todo
+##update todo
 update todo set content = '$content' where id = $id;
 
-create todo
-insert into todo (id, user_id, content, status, create_time) values(
-1, $user_id, $content, 'yet', now());
+##create todo
+insert into todo (id, user_id, content, status, create_time) values(1, $user_id, $content, 'yet', now());
 
+create index `todo_idx` on todo(user_id);
 
-create index `todo_idx` on todo(user_id,create_time); 
-
-
-user search
+##user search
 select username from user where docomo_openid = $openid;
 select user_id from user where username = $username;
 
-create index `user_idx` on user(docomo_openid);
-
-
 CREATE TABLE `todo` (
- `id` int(11) NOT NULL AUTO_INCREMENT, 
+ `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `content` text NOT NULL,
   `status` enum('done','yet') NOT NULL,
@@ -44,18 +38,15 @@ CREATE TABLE `user` (
   `docomo_openid` varchar(255) NOT NULL,
   PRIMARY KEY (`user_id`)
 );
- 
- 
- 
- 
- create index `user_id_idx` on todo(`user_id`);
- create index `content_idx` on todo(`content`);
- create index `status_idx` on todo(`status`);
- create index `time_idx` on todo(`create_time`);
- 
- 
- 
- ## 適当にインサートするためのストアドプロシージャ
+
+create index `user_id_idx` on todo(`user_id`);
+create index `time_idx(create_time(255))` on todo(`create_time`);
+create index `status_idx` on todo(`status`);
+create index `time_idx` on todo(`create_time`);
+
+create index `username_idx` on user(`username`);
+create index `user_idx` on user(docomo_openid);
+
 DELIMITER //
 CREATE PROCEDURE testInsert(IN max INT)
   BEGIN
@@ -69,8 +60,22 @@ CREATE PROCEDURE testInsert(IN max INT)
     END LOOP simple_loop;
 END //
 
-## インサート
+
+DELIMITER //
+CREATE PROCEDURE testInsert(IN max INT)
+  BEGIN
+  DECLARE cnt INT Default 1 ;
+    simple_loop: LOOP
+      INSERT INTO user (username,docomo_openid) VALUES (CONCAT('test00',cnt), CONCAT('http://test0123/example.',cnt,'.com'));
+      SET cnt = cnt+1;
+      IF cnt=max THEN
+        LEAVE simple_loop;
+       END IF;
+    END LOOP simple_loop;
+END //
+
+DELIMITER ;
+
 CALL testInsert(1000000);
 
-## ストアドプロシージャの削除
 DROP PROCEDURE testInsert;
